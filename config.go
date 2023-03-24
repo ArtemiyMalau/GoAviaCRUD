@@ -9,7 +9,7 @@ import (
 )
 
 type config struct {
-	Port int `env:"LISTEN_PORT" envDefault:"3000"`
+	ListenAddr string `env:"LISTEN_ADDR" envDefault:":3000"`
 
 	DB struct {
 		Host     string `env:"DB_HOST"`

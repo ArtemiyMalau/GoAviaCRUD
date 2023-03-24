@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -21,18 +22,15 @@ func NewService(db *sqlx.DB) *Service {
 }
 
 func (s *Service) addAirline(ctx context.Context, dto AirlineDTOAdd) error {
-	resp, err := s.db.NamedExecContext(ctx, "INSERT INTO airline (code, name) VALUES (:code, :name)", &dto)
-	if err != nil {
-		var mysqlErr *mysql.MySQLError
+	if _, err := s.db.NamedExecContext(ctx, "INSERT INTO airline (code, name) VALUES (:code, :name)", &dto); err != nil {
 		log.Println(err)
+		var mysqlErr *mysql.MySQLError
 		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
 			return fmt.Errorf("Airline with passed code already exists")
 		}
 		return err
 	}
-	log.Println(resp.LastInsertId())
 	return nil
-
 }
 
 func (s *Service) deleteAirlineByCode(ctx context.Context, code string) error {
@@ -43,15 +41,62 @@ func (s *Service) deleteAirlineByCode(ctx context.Context, code string) error {
 	return nil
 }
 
-func (s *Service) changeAirlineProviders(ctx context.Context) error {
+func (s *Service) changeAirlineProviders(ctx context.Context, dto AirlineDTOChangeProviders) error {
+	tx := s.db.MustBeginTx(ctx, nil)
+	err := func() error {
+		var airlineM AirlineModel
+		if err := tx.GetContext(ctx, &airlineM, "SELECT * FROM airline WHERE code = ?", dto.Code); err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("Airline with passed code not exist")
+			}
+			return err
+		}
+
+		if _, err := tx.ExecContext(ctx, "DELETE FROM airline_provider WHERE airline_id = ?", airlineM.Id); err != nil {
+			return err
+		}
+
+		query, args, err := sqlx.In("SELECT * FROM provider WHERE code IN (?)", dto.Providers)
+		if err != nil {
+			return err
+		}
+		providerMs := []ProviderModel{}
+		if err := tx.SelectContext(ctx, &providerMs, query, args...); err != nil {
+			return err
+		}
+
+		for _, providerM := range providerMs {
+			tx.ExecContext(ctx, "INSERT INTO airline_provider (airline_id, provider_id) VALUES (?, ?)", airlineM.Id, providerM.Id)
+		}
+
+		return nil
+	}()
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
 	return nil
 }
 
-func (s *Service) addProvider(ctx context.Context) error {
+func (s *Service) addProvider(ctx context.Context, dto ProviderDTOAdd) error {
+	if _, err := s.db.NamedExecContext(ctx, "INSERT INTO provider (code, name) VALUES (:id, :name)", &dto); err != nil {
+		log.Println(err)
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return fmt.Errorf("Provider with passed code already exists")
+		}
+		return err
+	}
 	return nil
 }
 
-func (s *Service) deleteProviderById(ctx context.Context) error {
+func (s *Service) deleteProviderByCode(ctx context.Context, code string) error {
+	if _, err := s.db.ExecContext(ctx, "DELETE FROM provider WHERE code = ?", code); err != nil {
+		log.Println(err)
+		return err
+	}
 	return nil
 }
 
@@ -90,15 +135,3 @@ func (s *Service) deleteAccountById(ctx context.Context) error {
 func (s *Service) getAccountAirlines(ctx context.Context) error {
 	return nil
 }
-
-// tx := s.db.MustBegin()
-// resp, err := tx.NamedExec("INSERT INTO airline (code, name) VALUES (:code, :name)", &dto)
-// if err != nil {
-// 	var mysqlErr *mysql.MySQLError
-// 	log.Println(err)
-// 	if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
-// 		return fmt.Errorf("Airline with passed code already exists")
-// 	}
-// 	return err
-// }
-// tx.Commit()
