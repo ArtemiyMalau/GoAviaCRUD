@@ -17,6 +17,8 @@ type config struct {
 		Database string `env:"DB_DATABASE"`
 		Username string `env:"DB_USERNAME"`
 		Password string `env:"DB_PASSWORD"`
+
+		Scripts string `env:"DB_SCRIPTS_PATH"`
 	}
 }
 

@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	InitDB()
+
 	config := GetConfig()
 	db, err := sqlx.Connect("mysql", fmt.Sprintf("%s:%s@(%s:%s)/%s", config.DB.Username, config.DB.Password, config.DB.Host, config.DB.Port, config.DB.Database))
 	if err != nil {
