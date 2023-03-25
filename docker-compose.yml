@@ -1,0 +1,42 @@
+version: "3"
+services:
+  app:
+    depends_on:
+      - db
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # restart: always
+    container_name: avia_app
+    ports:
+      - "${DOCKER_HOST_APP_PORT}:8000"
+    networks:
+      - net
+
+  db:
+    image: mysql:8.0.31-debian
+    container_name: avia_db
+    hostname: ${DB_HOST}
+    # restart: always
+    environment:
+      # MYSQL_ROOT_PASSWORD using for define root superuser password. Repeat DB_PASSWORD for simplify
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      # MYSQL_DATABASE define database name with which container will start
+      - MYSQL_DATABASE=${DB_DATABASE}
+      # MYSQL_USER and MYSQL_PASSWORD credentials define for creating user for MYSQL_DATABASE db with superuser access
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "${DOCKER_HOST_DB_PORT}:3306"
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - net
+
+volumes:
+  db:
+    driver: local
+
+networks:
+  net:
+    driver: bridge
