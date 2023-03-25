@@ -10,10 +10,12 @@ COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
 
-COPY * ./
+COPY . ./
 
 RUN go build -o ./go-avia-crud
 
 EXPOSE 8000
+
+RUN ls -l
 
 CMD ["./go-avia-crud", "-migratedb", "-seeddb"]

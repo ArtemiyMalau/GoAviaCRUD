@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-playground/validator"
 	"github.com/gorilla/mux"
@@ -13,6 +14,7 @@ import (
 )
 
 func main() {
+	time.Sleep(time.Second * 15)
 	InitDB()
 
 	config := GetConfig()
