@@ -29,6 +29,6 @@ func main() {
 	r := mux.NewRouter()
 	handler.RegisterHandlers(r)
 
-	log.Printf("Start listening address %s", config.ListenAddr)
-	log.Fatal(http.ListenAndServe(config.ListenAddr, r))
+	log.Printf("Start listening port %s", config.ListenPort)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", config.ListenPort), r))
 }
