@@ -4,25 +4,23 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/go-playground/validator"
 	"github.com/gorilla/mux"
-	"github.com/jmoiron/sqlx"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
-	time.Sleep(time.Second * 15)
-	InitDB()
-
 	config := GetConfig()
-	db, err := sqlx.Connect("mysql", fmt.Sprintf("%s:%s@(%s:%s)/%s", config.DB.Username, config.DB.Password, config.DB.Host, config.DB.Port, config.DB.Database))
+
+	db, err := GetDBConnection(config)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
+
+	InitDB(config, db)
 
 	service := NewService(db)
 	v := validator.New()
